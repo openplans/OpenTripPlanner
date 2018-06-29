@@ -14,16 +14,15 @@
 package org.opentripplanner.routing.bike_rental;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import java.io.Serializable;
-import java.util.Locale;
-import java.util.Set;
-
-import javax.xml.bind.annotation.XmlAttribute;
-import javax.xml.bind.annotation.XmlTransient;
-
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.opentripplanner.util.I18NString;
 import org.opentripplanner.util.ResourceBundleSingleton;
+
+import javax.xml.bind.annotation.XmlAttribute;
+import javax.xml.bind.annotation.XmlTransient;
+import java.io.Serializable;
+import java.util.Locale;
+import java.util.Set;
 
 public class BikeRentalStation implements Serializable, Cloneable {
     private static final long serialVersionUID = 8311460609708089384L;
@@ -49,6 +48,13 @@ public class BikeRentalStation implements Serializable, Cloneable {
     public boolean allowDropoff = true;
     @XmlAttribute
     @JsonSerialize
+    public boolean allowPickup = true;
+
+    /**
+     * isFloatingBike determines if a bike is dockless or not.
+     */
+    @XmlAttribute
+    @JsonSerialize
     public boolean isFloatingBike = false;
     @XmlAttribute
     @JsonSerialize
@@ -60,7 +66,7 @@ public class BikeRentalStation implements Serializable, Cloneable {
     @XmlAttribute
     @JsonSerialize
     public Set<String> networks = null;
-    
+
     /**
      * Whether this station is static (usually coming from OSM data) or a real-time source. If no real-time data, users should take
      * bikesAvailable/spacesAvailable with a pinch of salt, as they are always the total capacity divided by two. Only the total is meaningful.
@@ -96,13 +102,13 @@ public class BikeRentalStation implements Serializable, Cloneable {
         BikeRentalStation other = (BikeRentalStation) o;
         return other.id.equals(id);
     }
-    
+
     public int hashCode() {
         return id.hashCode() + 1;
     }
-    
+
     public String toString () {
-        return String.format(Locale.US, "Bike rental station %s at %.6f, %.6f", name, y, x); 
+        return String.format(Locale.US, "Bike rental station %s at %.6f, %.6f", name, y, x);
     }
 
     @Override

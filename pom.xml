@@ -424,9 +424,9 @@
             <url>https://people.apache.org/repo/m1-ibiblio-rsync-repository/org.apache.axis2/</url>
         </repository>
         <repository>
-          <id>sonatype-oss</id>
-          <name>Sonatype OSS</name>
-          <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+            <id>sonatype-oss</id>
+            <name>Sonatype OSS</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
         </repository>
         <repository>
             <id>conveyal</id>
@@ -599,13 +599,13 @@
 
         <!-- Jackson modules. -->
         <dependency>
-           <groupId>com.fasterxml.jackson.core</groupId>
-           <artifactId>jackson-core</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
-           <groupId>com.fasterxml.jackson.core</groupId>
-           <artifactId>jackson-databind</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
         </dependency>
         <!-- Jackson modules to serialize Jersey response objects to JSON. -->
@@ -767,6 +767,11 @@
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java</artifactId>
             <version>2.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.conveyal</groupId>
+            <artifactId>gtfs-lib</artifactId>
+            <version>1.3.0</version>
         </dependency>
         <!-- Support for OTP scripting -->
         <dependency>

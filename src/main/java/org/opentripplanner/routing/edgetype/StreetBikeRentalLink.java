@@ -27,7 +27,7 @@ import java.util.Locale;
 
 /**
  * This represents the connection between a street vertex and a bike rental station vertex.
- * 
+ *
  */
 public class StreetBikeRentalLink extends Edge {
 

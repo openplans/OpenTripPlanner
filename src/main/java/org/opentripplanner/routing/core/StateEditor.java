@@ -13,10 +13,6 @@
 
 package org.opentripplanner.routing.core;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Set;
-
 import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.Stop;
 import org.onebusaway.gtfs.model.Trip;
@@ -26,6 +22,10 @@ import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Set;
 
 /**
  * This class is a wrapper around a new State that provides it with setter and increment methods,
@@ -346,15 +346,17 @@ public class StateEditor {
         child.stateData.everBoarded = true;
     }
 
-    public void beginVehicleRenting(TraverseMode vehicleMode) {
+    public void beginVehicleRenting(TraverseMode vehicleMode, boolean isFloatingBike) {
         cloneStateDataAsNeeded();
         child.stateData.usingRentedBike = true;
+        child.stateData.isFloatingBike = isFloatingBike;
         child.stateData.nonTransitMode = vehicleMode;
     }
 
     public void doneVehicleRenting() {
         cloneStateDataAsNeeded();
         child.stateData.usingRentedBike = false;
+        child.stateData.isFloatingBike = false;
         child.stateData.nonTransitMode = TraverseMode.WALK;
     }
 
@@ -419,6 +421,7 @@ public class StateEditor {
         child.stateData.zone = state.stateData.zone;
         child.stateData.extensions = state.stateData.extensions;
         child.stateData.usingRentedBike = state.stateData.usingRentedBike;
+        child.stateData.isFloatingBike = state.stateData.isFloatingBike;
         child.stateData.carParked = state.stateData.carParked;
         child.stateData.bikeParked = state.stateData.bikeParked;
     }
@@ -429,6 +432,7 @@ public class StateEditor {
         child.stateData.carParked = state.isCarParked();
         child.stateData.bikeParked = state.isBikeParked();
         child.stateData.usingRentedBike = state.isBikeRenting();
+        child.stateData.isFloatingBike = state.isFloatingBike();
     }
 
     /* PUBLIC GETTER METHODS */
@@ -527,7 +531,7 @@ public class StateEditor {
 
     public void setBikeRentalNetwork(Set<String> networks) {
         cloneStateDataAsNeeded();
-        child.stateData.bikeRentalNetworks = networks;
+        child.stateData.currentlyRentedBikes = networks;
     }
 
     public boolean hasEnteredNoThroughTrafficArea() {

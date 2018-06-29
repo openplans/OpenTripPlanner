@@ -28,7 +28,7 @@ public enum TraverseMode {
     TRANSIT, LEG_SWITCH,
     AIRPLANE;
 
-    private static HashMap <Set<TraverseMode>, Set<TraverseMode>> setMap = 
+    private static HashMap <Set<TraverseMode>, Set<TraverseMode>> setMap =
             new HashMap <Set<TraverseMode>, Set<TraverseMode>>();
 
     public static Set<TraverseMode> internSet (Set<TraverseMode> modeSet) {
