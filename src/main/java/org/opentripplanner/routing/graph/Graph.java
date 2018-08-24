@@ -13,7 +13,6 @@
 
 package org.opentripplanner.routing.graph;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.*;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -31,17 +30,13 @@ import org.onebusaway.gtfs.model.FeedInfo;
 import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
-import org.opentripplanner.analyst.core.GeometryIndex;
-import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.common.MavenVersion;
 import org.opentripplanner.common.TurnRestriction;
 import org.opentripplanner.common.geometry.GraphUtils;
 import org.opentripplanner.graph_builder.annotation.GraphBuilderAnnotation;
 import org.opentripplanner.graph_builder.annotation.NoFutureDates;
 import org.opentripplanner.model.GraphBundle;
-import org.opentripplanner.profile.StopClusterMode;
 import org.opentripplanner.routing.alertpatch.AlertPatch;
-import org.opentripplanner.routing.core.MortonVertexComparatorFactory;
 import org.opentripplanner.routing.core.TransferTable;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.edgetype.EdgeWithCleanup;
@@ -97,25 +92,16 @@ public class Graph implements Serializable {
 
     private GraphBundle bundle;
 
-    /* vertex index by name is reconstructed from edges */
+    /* Vertex index by name is reconstructed from edges. TODO Is this actually needed? */
     private transient Map<String, Vertex> vertices;
 
     private transient CalendarService calendarService;
 
     private boolean debugData = true;
 
-    // TODO this would be more efficient if it was just an array.
-    private transient Map<Integer, Vertex> vertexById;
-
-    private transient Map<Integer, Edge> edgeById;
-
     public transient StreetVertexIndexService streetIndex;
 
     public transient GraphIndex index;
-
-    private transient GeometryIndex geomIndex;
-
-    private transient SampleFactory sampleFactory;
 
     public final Deduplicator deduplicator = new Deduplicator();
 
@@ -134,8 +120,6 @@ public class Graph implements Serializable {
     private Collection<String> feedIds = new HashSet<>();
 
     private Map<String, FeedInfo> feedInfoForId = new HashMap<>();
-
-    private VertexComparatorFactory vertexComparatorFactory = new MortonVertexComparatorFactory();
 
     private transient TimeZone timeZone = null;
 
@@ -203,9 +187,6 @@ public class Graph implements Serializable {
     /** A speed source for traffic data */
     public transient StreetSpeedSnapshotSource streetSpeedSource;
     
-    /** How should we cluster stops? By 'proximity' or 'ParentStation' */
-    public StopClusterMode stopClusterMode = StopClusterMode.proximity;
-
     /** The difference in meters between the WGS84 ellipsoid height and geoid height at the graph's center */
     public Double ellipsoidToGeoidDifference = 0.0;
 
@@ -218,9 +199,7 @@ public class Graph implements Serializable {
     }
 
     public Graph() {
-        this.vertices = new ConcurrentHashMap<String, Vertex>();
-        this.edgeById = new ConcurrentHashMap<Integer, Edge>();
-        this.vertexById = new ConcurrentHashMap<Integer, Vertex>();
+        this.vertices = new ConcurrentHashMap<>();
     }
 
     /**
@@ -263,7 +242,6 @@ public class Graph implements Serializable {
 
             turnRestrictions.remove(e);
             streetNotesService.removeStaticNotes(e);
-            edgeById.remove(e.getId());
 
             if (e instanceof EdgeWithCleanup) ((EdgeWithCleanup) e).detach();
 
@@ -295,37 +273,11 @@ public class Graph implements Serializable {
     }
 
     /**
-     * Returns the vertex with the given ID or null if none is present.
-     *
-     * NOTE: you may need to run rebuildVertexAndEdgeIndices() for the indices
-     * to be accurate.
-     *
-     * @param id
-     * @return
-     */
-    public Vertex getVertexById(int id) {
-        return this.vertexById.get(id);
-    }
-
-    /**
      * Get all the vertices in the graph.
      * @return
      */
     public Collection<Vertex> getVertices() {
         return this.vertices.values();
-    }
-
-    /**
-     * Returns the edge with the given ID or null if none is present.
-     *
-     * NOTE: you may need to run rebuildVertexAndEdgeIndices() for the indices
-     * to be accurate.
-     *
-     * @param id
-     * @return
-     */
-    public Edge getEdgeById(int id) {
-        return edgeById.get(id);
     }
 
     /**
@@ -588,48 +540,7 @@ public class Graph implements Serializable {
         return ne;
     }
 
-    /**
-     * Add a collection of edges from the edgesById index.
-     * @param es
-     */
-    private void addEdgesToIndex(Collection<Edge> es) {
-        for (Edge e : es) {
-            this.edgeById.put(e.getId(), e);
-        }
-    }
-    
-    /**
-     * Rebuilds any indices on the basis of current vertex and edge IDs.
-     * 
-     * If you want the index to be accurate, you must run this every time the 
-     * vertex or edge set changes.
-     * 
-     * TODO(flamholz): keep the indices up to date with changes to the graph.
-     * This is not simple because the Vertex constructor may add itself to the graph
-     * before the Vertex has any edges, so updating indices on addVertex is insufficient.
-     */
-    public void rebuildVertexAndEdgeIndices() {
-        this.vertexById = new HashMap<Integer, Vertex>(Vertex.getMaxIndex());
-        Collection<Vertex> vertices = getVertices();
-        for (Vertex v : vertices) {
-            vertexById.put(v.getIndex(), v);
-        }
-
-        // Create map from edge ids to edges.
-        this.edgeById = new HashMap<Integer, Edge>();
-        for (Vertex v : vertices) {
-            // TODO(flamholz): this check seems superfluous.
-            if (v == null) {
-                continue;
-            }
-
-            // Assumes that all the edges appear in at least one outgoing edge list.
-            addEdgesToIndex(v.getOutgoing());
-        }
-    }
-
-    private void readObject(ObjectInputStream inputStream) throws ClassNotFoundException,
-            IOException {
+    private void readObject(ObjectInputStream inputStream) throws ClassNotFoundException, IOException {
         inputStream.defaultReadObject();
     }
 
@@ -714,7 +625,6 @@ public class Graph implements Serializable {
         streetIndex = indexFactory.newIndex(this);
         LOG.debug("street index built.");
         LOG.debug("Rebuilding edge and vertex indices.");
-        rebuildVertexAndEdgeIndices();
         Set<TripPattern> tableTripPatterns = Sets.newHashSet();
         for (PatternArriveVertex pav : Iterables.filter(this.getVertices(), PatternArriveVertex.class)) {
             tableTripPatterns.add(pav.getTripPattern());
@@ -835,8 +745,6 @@ public class Graph implements Serializable {
             if (v.getDegreeOut() + v.getDegreeIn() == 0)
                 LOG.debug("vertex {} has no edges, it will not survive serialization.", v);
         }
-        LOG.debug("Assigning vertex/edge ID numbers...");
-        this.rebuildVertexAndEdgeIndices();
         LOG.debug("Writing edges...");
         out.writeObject(this);
         out.writeObject(edges);
@@ -844,8 +752,6 @@ public class Graph implements Serializable {
             // should we make debug info generation conditional?
             LOG.debug("Writing debug data...");
             out.writeObject(this.graphBuilderAnnotations);
-            out.writeObject(this.vertexById);
-            out.writeObject(this.edgeById);
         } else {
             LOG.debug("Skipping debug data.");
         }
@@ -869,10 +775,6 @@ public class Graph implements Serializable {
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    public Integer getIdForEdge(Edge edge) {
-        return edge.getId();
     }
 
     public CalendarService getCalendarService() {
@@ -1027,23 +929,6 @@ public class Graph implements Serializable {
         return this.envelope;
     }
 
-    // lazy-init geom index on an as needed basis
-    public GeometryIndex getGeomIndex() {
-    	
-    	if(this.geomIndex == null)
-    		this.geomIndex = new GeometryIndex(this);
-    	
-    	return this.geomIndex;
-    }
-
-    // lazy-init sample factor on an as needed basis
-    public SampleFactory getSampleFactory() {
-        if(this.sampleFactory == null)
-            this.sampleFactory = new SampleFactory(this);
-
-        return this.sampleFactory;	
-    }
-
     /**
      * Calculates Transit center from median of coordinates of all transitStops if graph
      * has transit. If it doesn't it isn't calculated. (mean walue of min, max latitude and longitudes are used)
@@ -1052,7 +937,6 @@ public class Graph implements Serializable {
      *
      * This speeds up calculation, but problem is that median needs to have all of latitudes/longitudes
      * in memory, this can become problematic in large installations. It works without a problem on New York State.
-     * @see GraphEnvelope
      */
     public void calculateTransitCenter() {
         if (hasTransit) {
