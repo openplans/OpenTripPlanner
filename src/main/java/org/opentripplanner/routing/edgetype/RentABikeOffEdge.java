@@ -4,11 +4,10 @@ import java.util.Set;
 
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
-import org.opentripplanner.routing.graph.Vertex;
+import org.opentripplanner.routing.vertextype.BikeRentalStationVertex;
 
 /**
  * Dropping off a rented bike edge.
- * 
  * Cost is the time to dropoff a bike.
  * 
  * @author laurent
@@ -18,7 +17,7 @@ public class RentABikeOffEdge extends RentABikeAbstractEdge {
 
     private static final long serialVersionUID = 1L;
 
-    public RentABikeOffEdge(Vertex from, Vertex to, Set<String> networks) {
+    public RentABikeOffEdge(BikeRentalStationVertex from, BikeRentalStationVertex to, Set<String> networks) {
         super(from, to, networks);
     }
 
@@ -43,4 +42,5 @@ public class RentABikeOffEdge extends RentABikeAbstractEdge {
     public String toString() {
         return "RentABikeOffEdge(" + fromv + " -> " + tov + ")";
     }
+
 }

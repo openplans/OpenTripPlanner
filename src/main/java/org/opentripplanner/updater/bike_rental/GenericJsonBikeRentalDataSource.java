@@ -103,57 +103,58 @@ public abstract class GenericJsonBikeRentalDataSource implements BikeRentalDataS
     }
 
     private void parseJSON(InputStream dataStream) throws IllegalArgumentException, IOException {
-
-        ArrayList<BikeRentalStation> out = new ArrayList<>();
-
         String rentalString = convertStreamToString(dataStream);
-
         ObjectMapper mapper = new ObjectMapper();
         JsonNode rootNode = mapper.readTree(rentalString);
-
         if (!jsonParsePath.equals("")) {
             String delimiter = "/";
             String[] parseElement = jsonParsePath.split(delimiter);
-            for(int i =0; i < parseElement.length ; i++) {
+            for(int i = 0; i < parseElement.length; i++) {
                 rootNode = rootNode.path(parseElement[i]);
             }
-
             if (rootNode.isMissingNode()) {
                 throw new IllegalArgumentException("Could not find jSON elements " + jsonParsePath);
-              }
-        }
-
-        for (int i = 0; i < rootNode.size(); i++) {
-            // TODO can we use foreach? for (JsonNode node : rootNode) ...
-            JsonNode node = rootNode.get(i);
-            if (node == null) {
-                continue;
             }
+        }
+        processNodes(rootNode);
+    }
+
+    /**
+     * This method can be overridden in the event that a subclass does not yield stations.
+     * @param rootNode should be an array of sub-objects
+     */
+    public void processNodes(JsonNode rootNode) {
+        List<BikeRentalStation> out = new ArrayList<>();
+        for (JsonNode node : rootNode) {
+            if (node == null) continue;
             BikeRentalStation brstation = makeStation(node);
-            if (brstation != null)
+            if (brstation != null) {
                 out.add(brstation);
+            }
         }
         synchronized(this) {
             stations = out;
         }
     }
 
-    private String convertStreamToString(java.io.InputStream is) {
+    /**
+     * Read the entire InputStream into a String.
+     */
+    private static String convertStreamToString(java.io.InputStream is) {
         java.util.Scanner scanner = null;
         String result="";
         try {
-           
+            // The delimiter is \A which means "beginning of input". That can't match anything later in the input.
+            // So it will read everything in to the end of the stream.
             scanner = new java.util.Scanner(is).useDelimiter("\\A");
             result = scanner.hasNext() ? scanner.next() : "";
             scanner.close();
-        }
-        finally
-        {
-           if(scanner!=null)
+        } finally {
+           if(scanner!=null) {
                scanner.close();
+           }
         }
         return result;
-        
     }
 
     @Override
