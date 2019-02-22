@@ -10,6 +10,8 @@
 - Allow itineraries in response to be sorted by duration (#2593)
 - Add support for GTFS-flex services: flag stops, deviated-route service, and call-and-ride (#2603)
 - Fix reverse optimization bug (#2653, #2411)
+- Add unit tests for org.opentripplanner.common.geometry.Subgraph (#2723)
+- Fix a bug in org.opentripplanner.common.geometry.Subgraph.getConvexHull (#2727)
 
 ## 1.3 (2018-08-03)
 
