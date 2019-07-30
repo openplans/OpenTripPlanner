@@ -1,8 +1,10 @@
 package org.opentripplanner.updater.alerts;
 
 import java.io.InputStream;
+import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.impl.AlertPatchServiceImpl;
 import org.opentripplanner.routing.services.AlertPatchService;
@@ -40,6 +42,8 @@ public class GtfsRealtimeAlertsUpdater extends PollingGraphUpdater {
 
     private String feedId;
 
+    private Map<String, String > httpHeaders;
+
     private GtfsRealtimeFuzzyTripMatcher fuzzyTripMatcher;
 
     private AlertPatchService alertPatchService;
@@ -63,6 +67,9 @@ public class GtfsRealtimeAlertsUpdater extends PollingGraphUpdater {
             throw new IllegalArgumentException("Missing mandatory 'url' parameter");
         }
         this.url = url;
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode headersMap = config.path("headers");
+        this.httpHeaders = mapper.convertValue(headersMap, Map.class);
         this.earlyStart = config.path("earlyStartSec").asInt(0);
         this.feedId = config.path("feedId").asText();
         if (config.path("fuzzyTripMatching").asBoolean(false)) {

@@ -514,6 +514,8 @@ Real-time data sources are configured in `router-config.json`. The `updaters` se
 of which has a `type` field and other configuration fields specific to that type. Common to all updater entries that
 connect to a network resource is the `url` field.
 
+Notice the use of the 'headers' json in the ServiceAlerts and TripUpdates sections. This is an optional attribute. However it can be useful when these sources of the feed(http sources) require header information along with the 'url', probably for authentication purposes. 
+
 ```JSON
 // router-config.json
 {
@@ -533,6 +535,10 @@ connect to a network resource is the `url` field.
             "type": "real-time-alerts",
             "frequencySec": 30,
             "url": "http://developer.trimet.org/ws/V1/FeedSpecAlerts/appID/0123456789ABCDEF",
+            "headers": {
+              "HeaderKey1": "HeaderValue1",
+              "HeaderKey2": "HeaderValue2"
+            },
             "feedId": "TriMet"
         },
 
@@ -584,6 +590,10 @@ connect to a network resource is the `url` field.
             // this is either http or file... shouldn't it default to http or guess from the presence of a URL?
             "sourceType": "gtfs-http",
             "url": "http://developer.trimet.org/ws/V1/TripUpdate/appID/0123456789ABCDEF",
+            "headers": {
+              "HeaderKey1": "HeaderValue1",
+              "HeaderKey2": "HeaderValue2"
+            },
             "feedId": "TriMet"
         },
 
