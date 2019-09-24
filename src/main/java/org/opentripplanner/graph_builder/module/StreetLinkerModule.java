@@ -1,14 +1,14 @@
 package org.opentripplanner.graph_builder.module;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
-import org.opentripplanner.graph_builder.linking.SimpleStreetSplitter;
+import org.opentripplanner.graph_builder.linking.StreetSplitter;
 import org.opentripplanner.graph_builder.services.GraphBuilderModule;
 import org.opentripplanner.routing.graph.Graph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * {@link org.opentripplanner.graph_builder.services.GraphBuilderModule} plugin that links various objects
@@ -44,9 +44,13 @@ public class StreetLinkerModule implements GraphBuilderModule {
     public void buildGraph(Graph graph, HashMap<Class<?>, Object> extra) {
         if(graph.hasStreets) {
             LOG.info("Linking transit stops, bike rental stations, bike parking areas, and park-and-rides to graph . . .");
-            SimpleStreetSplitter linker = new SimpleStreetSplitter(graph);
+            // Make sure the graph index has been initialized. Don't recalculate the street index because it should
+            // already have been initialized in a previous build module and should have all needed street data for
+            // splitting StreetEdges.
+            graph.index(false);
+            StreetSplitter linker = graph.streetIndex.getStreetSplitter();
             linker.setAddExtraEdgesToAreas(this.addExtraEdgesToAreas);
-            linker.link();
+            linker.linkAllStationsToGraph();
         }
         //Calculates convex hull of a graph which is shown in routerInfo API point
         graph.calculateConvexHull();
