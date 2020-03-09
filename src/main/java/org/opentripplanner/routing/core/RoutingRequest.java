@@ -635,6 +635,59 @@ public class RoutingRequest implements Cloneable, Serializable {
      */
     private StreetEdge splitEdge = null;
 
+    /**
+     * TODO TNC - Should this be replaced by OTPFeature.TNC ?
+     * Whether or not to use a TNC during part of the trip
+     */
+    public boolean useTransportationNetworkCompany;
+
+    // driving reluctances are used in TNC requests.
+    // It is set in org.opentripplanner.api.parameter.QualifiedMode.
+    // The driveTimeReluctance is used as a multiplier to add weight to a shortest path search in
+    //   org.opentripplanner.routing.edgetype.StreetEdge.
+    // It is set to -1 to indicate that driving reluctance should not be used in default car routing requests.
+    public double driveTimeReluctance = -1.0;
+
+    // TODO TNC - Needs JavaDoc
+    public double driveDistanceReluctance = -1.0;
+
+    // A mimum travel distance for a ride in a transportation network company.
+    // Units in meters, default is 0.5 miles.
+    public double minimumTransportationNetworkCompanyDistance = 804.672;
+
+    // we store the earliest pickup time here and add it upon the first boarding
+    // this way, a graph search can proceed and give walking a time advantage
+    // initial value of -1 indicates ETA is not available
+    public int transportationNetworkCompanyEtaAtOrigin = -1;
+
+    /**
+     * TODO TNC - Use agency whiteListing instead?
+     * A common separated list of the allowable TNC companies to query
+     */
+    public String companies;
+
+    // The minimum transit distance required during filtering itineraries
+    // Format is a number with a percent, ie: 50%
+    public String minTransitDistance;
+
+    // allow custom shortest path search timeouts
+    // set to -1 by default which means don't use a custom timeout
+    // units are in milliseconds
+    public long searchTimeout = -1;
+
+    /**
+     * Keep track of epoch time the request was created by OTP. This is currently only used by the
+     * GTFS-Flex implementation.
+     *
+     * In GTFS-Flex, deviated-route and call-and-ride service can define a trip-level parameter
+     * `drt_advance_book_min`, which determines how far in advance the flexible segment must be
+     * scheduled. If `flexIgnoreDrtAdvanceBookMin = false`, OTP will only provide itineraries which
+     * are feasible based on that constraint. For example, if the current time is 1:00pm and a
+     * particular service must be scheduled one hour in advance, the earliest time the service
+     * is usable is 2:00pm.
+     */
+    public long clockTimeSec;
+
     /* CONSTRUCTORS */
 
     /** Constructor for options; modes defaults to walk and transit */
@@ -891,7 +944,8 @@ public class RoutingRequest implements Cloneable, Serializable {
     }
 
     public void setDateTime(Date dateTime) {
-        this.dateTime = dateTime.getTime() / 1000;
+        if (dateTime == null) throw new IllegalArgumentException("Date or time parameter is invalid.");
+        else this.dateTime = dateTime.getTime() / 1000;
     }
 
     public void setDateTime(String date, String time, TimeZone tz) {

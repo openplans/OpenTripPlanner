@@ -24,6 +24,10 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
+
+import static org.opentripplanner.ext.tnc.routing.TransportationNetworkCompanyService.setEarliestTransportationNetworkCompanyEta;
+
+
 /**
  * This class defines all the JAX-RS query parameters for a path search as fields, allowing them to 
  * be inherited by other REST resource classes (the trip planner and the Analyst WMS or tile 
@@ -51,7 +55,7 @@ public abstract class RoutingResource {
      * @see https://github.com/opentripplanner/OpenTripPlanner/issues/2760
      */
     @Deprecated
-    @PathParam("routerId") 
+    @PathParam("routerId")
     public String routerId;
 
     /** The start location -- either latitude, longitude pair in degrees or a Vertex
@@ -111,7 +115,7 @@ public abstract class RoutingResource {
      */
     @Deprecated
     @QueryParam("arriveBy")
-    protected Boolean arriveBy;
+    public Boolean arriveBy;
     
     /**
      * Whether the trip must be wheelchair accessible.
@@ -247,7 +251,7 @@ public abstract class RoutingResource {
      *   <a href="http://docs.opentripplanner.org/en/latest/Configuration/#routing-modes">Routing modes</a>.
      */
     @QueryParam("mode")
-    protected QualifiedModeSet modes;
+    public QualifiedModeSet modes;
 
     /**
      * The minimum time, in seconds, between successive trips on different vehicles.
@@ -587,6 +591,27 @@ public abstract class RoutingResource {
     private Boolean geoidElevation;
 
     /**
+     * TODO TNC - This could be replaced by agency white listing
+     * A comma separated list of TNC companies to use in the routing request
+     */
+    @QueryParam("companies")
+    protected String companies;
+
+    /**
+     * The minimum distance that should be covered using transit legs. For now, this will only have an effect if
+     * expressed as a percent. ie "50%"
+     */
+    @QueryParam("minTransitDistance")
+    private String minTransitDistance;
+
+    /**
+     * Override the default shortest path search timeouts to this value in milliseconds. This value will apply to all
+     * attempts to find an individual itinerary.
+     */
+    @QueryParam("searchTimeout")
+    protected Long searchTimeout;
+
+    /**
      * Set the method of sorting itineraries in the response. Right now, the only supported value is "duration";
      * otherwise it uses default sorting. More sorting methods may be added in the future.
      *
@@ -597,6 +622,13 @@ public abstract class RoutingResource {
     private String pathComparator;
 
     /**
+     * When set to true, this will require transit to be present in all itineraries returned. This will prevent results
+     * that have only a non-transit mode as the entire itinerary even if that option is more optimal.
+     */
+    @QueryParam("onlyTransitTrips")
+    private Boolean onlyTransitTrips;
+
+    /*
      * somewhat ugly bug fix: the graphService is only needed here for fetching per-graph time zones. 
      * this should ideally be done when setting the routing context, but at present departure/
      * arrival time is stored in the request as an epoch time with the TZ already resolved, and other
@@ -817,8 +849,15 @@ public abstract class RoutingResource {
         if (geoidElevation != null)
             request.geoidElevation = geoidElevation;
 
-        if (pathComparator != null)
+        setEarliestTransportationNetworkCompanyEta(request, router, companies);
+
+        if (pathComparator != null) {
             request.pathComparator = pathComparator;
+        }
+
+        if (onlyTransitTrips != null) {
+            request.onlyTransitTrips = onlyTransitTrips;
+        }
 
         if(debugItineraryFilter != null ) {
             request.debugItineraryFilter = debugItineraryFilter;

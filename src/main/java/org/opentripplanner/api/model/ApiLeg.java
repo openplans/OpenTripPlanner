@@ -3,6 +3,7 @@ package org.opentripplanner.api.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.opentripplanner.api.model.alertpatch.ApiAlert;
+import org.opentripplanner.ext.tnc.api.model.TransportationNetworkCompanySummary;
 import org.opentripplanner.model.FeedScopedId;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.util.model.EncodedPolylineBean;
@@ -240,6 +241,16 @@ public class ApiLeg {
     @XmlAttribute
     @JsonSerialize
     public Boolean rentedBike;
+
+     /**
+      * Whether this leg involves traveling in a hailed car (Uber or Lyft for example).
+      */
+    public Boolean hailedCar;
+
+     /**
+      * On legs with hailed car travel, this includes more details specific to TNC travel.
+      */
+    public TransportationNetworkCompanySummary tncData;
 
     /**
      * Whether this leg is a transit leg or not.

@@ -197,7 +197,17 @@ public class Leg {
 
    public Boolean rentedBike;
 
-   /**
+    /**
+     * Whether this leg involves traveling in a hailed car(Uber, Lift, Taxi), bus or bike.
+     */
+   public Boolean hailed;
+
+    /**
+     * On legs with hailed car travel, this includes more details specific to TNC travel.
+     */
+    public RideOffer rideOffer;
+
+    /**
     * Whether this leg is a transit leg or not.
     * @return Boolean true if the leg is a transit leg
     */
@@ -268,9 +278,11 @@ public class Leg {
                 .addBool("isNonExactFrequency", isNonExactFrequency)
                 .addNum("headway", headway)
                 .addNum("distance", distanceMeters, "m")
+                .addBool("hailed", hailed)
                 .addBool("pathway", pathway)
                 .addEnum("mode", mode)
                 .addStr("route", route)
+                .addObj("rideOffer", rideOffer)
                 .addStr("agencyName", agencyName)
                 .addStr("agencyUrl", agencyUrl)
                 .addStr("agencyBrandingUrl", agencyBrandingUrl)

@@ -6,6 +6,7 @@ import org.opentripplanner.ext.examples.updater.ExamplePollingGraphUpdater;
 import org.opentripplanner.ext.siri.updater.SiriETUpdater;
 import org.opentripplanner.ext.siri.updater.SiriSXUpdater;
 import org.opentripplanner.ext.siri.updater.SiriVMUpdater;
+import org.opentripplanner.ext.tnc.updater.TransportationNetworkCompanyUpdater;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.updater.alerts.GtfsRealtimeAlertsUpdater;
 import org.opentripplanner.updater.bike_park.BikeParkUpdater;
@@ -102,6 +103,9 @@ public abstract class GraphUpdaterConfigurator {
                 }
                 else if (type.equals("siri-sx-updater")) {
                     updater = new SiriSXUpdater();
+                }
+                else if (type.equals("transportation-network-company-updater")) {
+                    updater = new TransportationNetworkCompanyUpdater();
                 }
             }
 
