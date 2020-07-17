@@ -74,6 +74,22 @@
 
 </script>
 
+<!-- RouterSelector -->
+
+<script id="otp-tripOptions-router" type="text/html">
+
+  <label>{{label}}</label>
+  <select id="{{widgetId}}-routers">
+    {{#routers}}
+      {{#.}}
+        <option>{{.}}</option>
+      {{/.}}
+    {{/routers}}
+  </select>
+  <button id="{{widgetId}}-refresh-routers">Refresh</button>
+
+</script>
+
 <!-- MaxDistanceSelector -->
 
 <script id="otp-tripOptions-maxDistance" type="text/html">

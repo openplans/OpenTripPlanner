@@ -203,7 +203,10 @@ otp.config = {
      */    
      
     timeFormat  : "h:mma",
-    dateFormat  : "MMM Do YYYY"
+    dateFormat  : "MMM Do YYYY",
+
+    // default list of routers to query
+    routers: [{routerId:'otp/routers/default'}]
 
 };
 var options = {

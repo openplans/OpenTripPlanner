@@ -92,17 +92,7 @@ otp.core.Map = otp.Class({
         
       
         if(!otp.config.initLatLng) {
-            var url = otp.config.hostname + '/' + otp.config.restService;
-            $.ajax(url, {
-                data: { routerId : otp.config.routerId },            
-                dataType: 'JSON',
-                success: function(data) {
-                    this_.lmap.fitBounds([
-                        [data.lowerLeftLatitude, data.lowerLeftLongitude],
-                        [data.upperRightLatitude, data.upperRightLongitude]
-                    ]);
-                }
-            });
+            this.getBoundsFromRouter()
         }
        
 
@@ -180,6 +170,21 @@ otp.core.Map = otp.Class({
         // refresh the map context menu
         this.contextMenu.clearModuleItems();
         newModule.addMapContextMenuItems();
+    },
+
+    getBoundsFromRouter: function () {
+      var url = otp.config.hostname + '/' + otp.config.restService;
+      var this_ = this;
+      $.ajax(url, {
+          data: { routerId : otp.config.routerId },
+          dataType: 'JSON',
+          success: function(data) {
+              this_.lmap.fitBounds([
+                  [data.lowerLeftLatitude, data.lowerLeftLongitude],
+                  [data.upperRightLatitude, data.upperRightLongitude]
+              ]);
+          }
+      });
     },
     
     setBounds : function(bounds)
