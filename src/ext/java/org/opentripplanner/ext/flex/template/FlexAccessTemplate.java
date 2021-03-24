@@ -1,5 +1,6 @@
 package org.opentripplanner.ext.flex.template;
 
+import org.opentripplanner.ext.flex.edgetype.FlexTransferEdge;
 import org.opentripplanner.ext.flex.FlexServiceDate;
 import org.opentripplanner.ext.flex.edgetype.FlexTripEdge;
 import org.opentripplanner.ext.flex.flexpathcalculator.FlexPathCalculator;
@@ -7,6 +8,8 @@ import org.opentripplanner.ext.flex.trip.FlexTrip;
 import org.opentripplanner.model.SimpleTransfer;
 import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.StopLocation;
+import org.opentripplanner.model.Transfer;
+import org.opentripplanner.model.TransferType;
 import org.opentripplanner.model.plan.Itinerary;
 import org.opentripplanner.routing.algorithm.mapping.GraphPathToItineraryMapper;
 import org.opentripplanner.routing.core.State;
@@ -15,20 +18,22 @@ import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.graphfinder.NearbyStop;
 import org.opentripplanner.routing.spt.GraphPath;
+import org.opentripplanner.routing.vertextype.TransitStopVertex;
 
 import java.time.ZonedDateTime;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 
-public class FlexAccessTemplate extends FlexAccessEgressTemplate {
+public class FlexAccessTemplate<T> extends FlexAccessEgressTemplate<T> {
   public FlexAccessTemplate(
-      NearbyStop accessEgress, FlexTrip trip, int fromStopTime, int toStopTime,
-      StopLocation transferStop, FlexServiceDate date, FlexPathCalculator calculator
+      NearbyStop accessEgress, FlexTrip<T> trip, T fromStopIndex, T toStopIndex,
+      StopLocation transferStop, FlexServiceDate date, FlexPathCalculator<T> calculator
   ) {
-    super(accessEgress, trip, fromStopTime, toStopTime, transferStop, date, calculator);
+    super(accessEgress, trip, fromStopIndex, toStopIndex, transferStop, date, calculator);
   }
 
   public Itinerary createDirectItinerary(
@@ -42,7 +47,7 @@ public class FlexAccessTemplate extends FlexAccessEgressTemplate {
       return null;
     }
 
-    FlexTripEdge flexEdge = getFlexEdge(flexToVertex, egress.stop);
+    FlexTripEdge<T> flexEdge = getFlexEdge(flexToVertex, egress.stop);
 
     State state = flexEdge.traverse(accessEgress.state);
 
@@ -56,7 +61,7 @@ public class FlexAccessTemplate extends FlexAccessEgressTemplate {
     int flexTime = flexTimes[1];
     int postFlexTime = flexTimes[2];
 
-    Integer timeShift = null;
+    int timeShift;
 
     if (arriveBy) {
       int lastStopArrivalTime = departureTime - postFlexTime - secondsFromStartOfTime;
@@ -99,6 +104,63 @@ public class FlexAccessTemplate extends FlexAccessEgressTemplate {
     return itinerary;
   }
 
+  public Itinerary getTransferItinerary(
+      Transfer transfer, FlexEgressTemplate<?> template, boolean arriveBy, int departureTime,
+      ZonedDateTime startOfTime, Map<Stop, TransitStopVertex> stopVertexForStop
+  ) {
+    if (transfer.getFromStop() != transfer.getToStop()) {
+      // TODO: Handle walking between legs
+      return null;
+    }
+
+    boolean isMinTimeTransfer = transfer.getTransferType() == TransferType.MIN_TIME;
+    boolean isGuaranteedTransfer = transfer.getTransferType() == TransferType.GUARANTEED;
+
+    if (!isMinTimeTransfer && !isGuaranteedTransfer) {
+      // TODO: Handle other types of transfers
+      return null;
+    }
+
+    TransitStopVertex transferFromVertex = stopVertexForStop.get(transfer.getFromStop());
+    TransitStopVertex transferToVertex = stopVertexForStop.get(transfer.getToStop());
+
+    if (!this.isRouteable(transferFromVertex) || !template.isRouteable(transferToVertex)) {
+      return null;
+    }
+
+    FlexTripEdge<T> firstFlexEdge = this.getFlexEdge(transferFromVertex, transfer.getFromStop());
+    FlexTripEdge<?> secondFlexEdge = template.getFlexEdge(transferToVertex, transfer.getToStop());
+
+    List<Edge> egressEdges = template.accessEgress.edges;
+
+    State state = this.accessEgress.state;
+
+    state = firstFlexEdge.traverse(state);
+
+    // TODO: Remove this and modify state directly
+    if (isMinTimeTransfer) {
+      FlexTransferEdge legSwitchEdge = new FlexTransferEdge(transferFromVertex, transferToVertex, transfer.getMinTransferTimeSeconds());
+      state = legSwitchEdge.traverse(state);
+    }
+    
+    state = secondFlexEdge.traverse(state);
+
+    for (Edge e : egressEdges) {
+      state = e.traverse(state);
+    }
+
+    // TODO: Filtering of invalid itineraries
+
+    Itinerary itinerary = GraphPathToItineraryMapper.generateItinerary(
+        new GraphPath(state, false),
+        Locale.ENGLISH
+    );
+
+    // TODO: Timeshift
+
+    return itinerary;
+  }
+
   protected List<Edge> getTransferEdges(SimpleTransfer simpleTransfer) {
     return simpleTransfer.getEdges();
   }
@@ -124,17 +186,17 @@ public class FlexAccessTemplate extends FlexAccessEgressTemplate {
           fromStopIndex,
           toStopIndex
       ) != null;
-  };
+  }
 
-  protected int[] getFlexTimes(FlexTripEdge flexEdge, State state) {
+  protected int[] getFlexTimes(FlexTripEdge<T> flexEdge, State state) {
     int preFlexTime = (int) accessEgress.state.getElapsedTimeSeconds();
     int edgeTimeInSeconds = flexEdge.getTimeInSeconds();
     int postFlexTime = (int) state.getElapsedTimeSeconds() - preFlexTime - edgeTimeInSeconds;
     return new int[]{ preFlexTime, edgeTimeInSeconds, postFlexTime };
   }
 
-  protected FlexTripEdge getFlexEdge(Vertex flexToVertex, StopLocation transferStop) {
-    return new FlexTripEdge(
+  protected FlexTripEdge<T> getFlexEdge(Vertex flexToVertex, StopLocation transferStop) {
+    return new FlexTripEdge<>(
         accessEgress.state.getVertex(),
         flexToVertex,
         accessEgress.stop,

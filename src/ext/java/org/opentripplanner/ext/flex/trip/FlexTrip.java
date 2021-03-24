@@ -19,7 +19,7 @@ import java.util.stream.Stream;
  * subclasses encapsulates the different business logic, which the different types of services
  * adhere to.
  */
-public abstract class FlexTrip extends TransitEntity {
+public abstract class FlexTrip<T> extends TransitEntity {
 
   protected final Trip trip;
 
@@ -28,17 +28,17 @@ public abstract class FlexTrip extends TransitEntity {
     this.trip = trip;
   }
 
-  public abstract Stream<FlexAccessTemplate> getFlexAccessTemplates(
-      NearbyStop access, FlexServiceDate date, FlexPathCalculator calculator
+  public abstract Stream<FlexAccessTemplate<T>> getFlexAccessTemplates(
+      NearbyStop access, FlexServiceDate date, FlexPathCalculator<Integer> calculator
   );
 
-  public abstract Stream<FlexEgressTemplate> getFlexEgressTemplates(
-      NearbyStop egress, FlexServiceDate date, FlexPathCalculator calculator
+  public abstract Stream<FlexEgressTemplate<T>> getFlexEgressTemplates(
+      NearbyStop egress, FlexServiceDate date, FlexPathCalculator<Integer> calculator
   );
 
-  public abstract int earliestDepartureTime(int departureTime, int fromStopIndex, int toStopIndex, int flexTime);
+  public abstract int earliestDepartureTime(int departureTime, T fromStopIndex, T toStopIndex, int flexTime);
 
-  public abstract int latestArrivalTime(int arrivalTime, int fromStopIndex, int toStopIndex, int flexTime);
+  public abstract int latestArrivalTime(int arrivalTime, T fromStopIndex, T toStopIndex, int flexTime);
 
   public abstract Collection<StopLocation> getStops();
 
