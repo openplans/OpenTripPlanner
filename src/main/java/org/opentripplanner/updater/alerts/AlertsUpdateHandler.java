@@ -70,7 +70,7 @@ public class AlertsUpdateHandler {
                     bestStartTime = realStart;
                 }
                 final long end = activePeriod.hasEnd() ? activePeriod.getEnd() : Long.MAX_VALUE;
-                if (end > lastEndTime) {
+                if (end < Long.MAX_VALUE && end > lastEndTime) {
                     lastEndTime = end;
                 }
                 periods.add(new TimePeriod(start, end));
@@ -95,6 +95,8 @@ public class AlertsUpdateHandler {
             String routeId = null;
             if (informed.hasRouteId()) {
                 routeId = informed.getRouteId();
+            } else if (informed.hasTrip() && informed.getTrip().hasRouteId())  {
+                routeId = informed.getTrip().getRouteId();
             }
 
             int direction;
@@ -152,7 +154,9 @@ public class AlertsUpdateHandler {
             + (informed.hasAgencyId  () ? informed.getAgencyId  () : " null ") + " "
             + (informed.hasRouteId   () ? informed.getRouteId   () : " null ") + " "
             + (informed.hasTrip() && informed.getTrip().hasDirectionId() ?
-                informed.getTrip().hasDirectionId() : " null ") + " "
+                informed.getTrip().getDirectionId() : " null ") + " "
+            + (informed.hasTrip() && informed.getTrip().hasRouteId() ?
+                informed.getTrip().getRouteId() : " null ") + " "
             + (informed.hasRouteType () ? informed.getRouteType () : " null ") + " "
             + (informed.hasStopId    () ? informed.getStopId    () : " null ") + " "
             + (informed.hasTrip() && informed.getTrip().hasTripId() ?
