@@ -33,6 +33,7 @@ final public class TemporaryPartialStreetEdge extends StreetWithElevationEdge im
         super(v1, v2, geometry, name, length, parentEdge.getPermission(), false);
         this.parentEdge = parentEdge;
         setCarSpeed(parentEdge.getCarSpeed());
+        setCarNetworks(parentEdge.getCarNetworks());
         setElevationProfileUsingParents();
 
         // Assert that the edge is going in the right direction [only possible if vertex is temporary]

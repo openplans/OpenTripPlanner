@@ -5,12 +5,20 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LineString;
 import org.opentripplanner.common.TurnRestriction;
 import org.opentripplanner.common.TurnRestrictionType;
-import org.opentripplanner.common.geometry.*;
+import org.opentripplanner.common.geometry.CompactLineString;
+import org.opentripplanner.common.geometry.DirectionUtils;
+import org.opentripplanner.common.geometry.GeometryUtils;
+import org.opentripplanner.common.geometry.PackedCoordinateSequence;
+import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.common.model.P2;
-import org.opentripplanner.routing.core.*;
+import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.core.State;
+import org.opentripplanner.routing.core.StateEditor;
+import org.opentripplanner.routing.core.TraverseMode;
+import org.opentripplanner.routing.core.TraverseModeSet;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
-import org.opentripplanner.routing.util.ElevationUtils;
+import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.vertextype.BarrierVertex;
 import org.opentripplanner.routing.vertextype.IntersectionVertex;
 import org.opentripplanner.routing.vertextype.OsmVertex;
@@ -26,8 +34,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * This represents a street segment.
@@ -39,7 +49,7 @@ public class StreetEdge extends Edge implements Cloneable {
 
     private static Logger LOG = LoggerFactory.getLogger(StreetEdge.class);
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
     /* TODO combine these with OSM highway= flags? */
     public static final int CLASS_STREET = 3;
@@ -107,6 +117,17 @@ public class StreetEdge extends Edge implements Cloneable {
 
     /** The angle at the start of the edge geometry. Internal representation like that of inAngle. */
     private byte outAngle;
+
+    // whether or not this street is a good place to board or alight a TNC vehicle
+    private boolean suitableForTNCStop = true;
+
+    /**
+     * A set of car networks where this edge is located inside their service regions.
+     */
+    private Set<String> carNetworks;
+
+    // whether or not this street is a good place to dropoff a floating car rental
+    private boolean suitableForFloatingCarRentalDropoff = true;
 
     public StreetEdge(StreetVertex v1, StreetVertex v2, LineString geometry,
                       I18NString name, double length,
@@ -271,6 +292,126 @@ public class StreetEdge extends Edge implements Cloneable {
                         return editor.makeState(); // return only the "parked" walking state
                     }
 
+                }
+            }
+        } else if (options.useTransportationNetworkCompany) {
+            // Irrevocable transition from using hailed car to walking.
+            // Final CAR check needed to prevent infinite recursion.
+            if (
+                    s0.isUsingHailedCar()
+                            && !getPermission().allows(TraverseMode.CAR)
+                            && currMode == TraverseMode.CAR
+            ) {
+                if (!s0.isTNCStopAllowed()) {
+                    return null;
+                }
+                editor = doTraverse(s0, options, TraverseMode.WALK);
+                if (editor != null) {
+                    editor.alightHailedCar(); // done with TNC use for now
+                    return editor.makeState(); // return only the state with updated TNC usage
+                }
+            }
+            // possible transition to hailing a car
+            else if (
+                    !s0.isUsingHailedCar()
+                            && getPermission().allows(TraverseMode.CAR)
+                            && currMode != TraverseMode.CAR
+                            && getTNCStopSuitability()
+            ) {
+                // perform extra checks to prevent entering a tnc vehicle if a car has already been
+                // hailed in the pre or post transit part of trip
+                Vertex toVertex = options.rctx.toVertex;
+                if (
+                    // arriveBy searches
+                    (
+                        options.arriveBy && (
+                            // forbid hailing car a 2nd time post transit
+                            (!s0.isEverBoarded() && s0.stateData.hasHailedCarPostTransit()) ||
+                                // forbid hailing car a 2nd time pre transit
+                                (s0.isEverBoarded() && s0.stateData.hasHailedCarPreTransit())
+                        )
+                    ) ||
+                    // depart at searches
+                    (
+                        !options.arriveBy && (
+                            // forbid hailing car a 2nd time pre transit
+                            (!s0.isEverBoarded() && s0.stateData.hasHailedCarPreTransit()) ||
+                                // forbid hailing car a 2nd time post transit
+                                (s0.isEverBoarded() && s0.stateData.hasHailedCarPostTransit())
+                        )
+                    )
+                ) {
+                    return state;
+                }
+                StateEditor editorCar = doTraverse(s0, options, TraverseMode.CAR);
+                StateEditor editorNonCar = doTraverse(s0, options, currMode);
+                if (editorCar != null) {
+                    editorCar.boardHailedCar(getDistance()); // start of TNC use
+                    if (editorNonCar != null) {
+                        // make the forkState be of the non-car mode so it's possible to build walk steps
+                        State forkState = editorNonCar.makeState();
+                        if (forkState != null) {
+                            forkState.addToExistingResultChain(editorCar.makeState());
+                            return forkState; // return both in-car and out-of-car states
+                        } else {
+                            // if the non-car state is non traversable or something, return just the car state
+                            return editorCar.makeState();
+                        }
+                    } else {
+                        // if the non-car state is non traversable or something, return just the car state
+                        return editorCar.makeState();
+                    }
+                }
+            }
+        } else if (options.allowCarRental) {
+            // Irrevocable transition from using rented car to walking.
+            // Final CAR check needed to prevent infinite recursion.
+            if (
+                s0.isCarRenting() &&
+                    !getPermission().allows(TraverseMode.CAR) &&
+                    currMode == TraverseMode.CAR &&
+                    // if in "arrive by" mode, the search is progressing backwards while in a car
+                    // rental state, but encounters an edge that cannot be traversed using a car
+                    // before encountering a car rental pickup station.  Therefore, this search
+                    // cannot proceed.
+                    !options.arriveBy &&
+                    s0.isCarRentalDropoffAllowed(this, false)
+            ) {
+                editor = doTraverse(s0, options, TraverseMode.WALK);
+                if (editor != null) {
+                    editor.endCarRenting(); // done with car rental use for now
+                    return editor.makeState(); // return only the state with updated rental car usage
+                }
+            }
+            // possible transition of dropping off a floating car when in "arrive by" mode
+            else if (
+                !s0.isCarRenting() &&
+                    getPermission().allows(TraverseMode.CAR) &&
+                    currMode != TraverseMode.CAR &&
+                    options.arriveBy &&
+                    s0.isCarRentalDropoffAllowed(this, false)
+            ) {
+                StateEditor editorCar = doTraverse(s0, options, TraverseMode.CAR);
+                StateEditor editorNonCar = doTraverse(s0, options, currMode);
+                if (editorCar != null) {
+                    // begin car rental usage.
+                    editorCar.incrementWeight(options.carRentalDropoffCost);
+                    editorCar.incrementTimeInSeconds(options.carRentalDropoffTime);
+                    editorCar.beginCarRenting(getDistance(), carNetworks, true);
+                    if (editorNonCar != null) {
+                        // make the forkState be of the non-car mode so it's possible to build walk steps
+                        State forkState = editorNonCar.makeState();
+                        if (forkState != null) {
+                            forkState.addToExistingResultChain(editorCar.makeState());
+                            return forkState; // return both in-car and out-of-car states
+                        } else {
+                            // if the non-car state is non traversable or something, return just the car state
+                            return editorCar.makeState();
+                        }
+                    } else {
+                        // if the non-car state is non traversable or something, return just the car state
+                        return editorCar.makeState();
+                    }
                 }
             }
         }
@@ -451,6 +592,20 @@ public class StreetEdge extends Edge implements Cloneable {
 
             if (!traverseMode.isDriving()) {
                 s1.incrementWalkDistance(realTurnCost / 100);  // just a tie-breaker
+            } else {
+                // check if driveTimeReluctance is defined (ie it is greater than 0)
+                if (options.driveTimeReluctance > 0) {
+                    s1.incrementWeight(time * options.driveTimeReluctance);
+                }
+                if (options.driveDistanceReluctance > 0) {
+                    s1.incrementWeight(getDistance() * options.driveDistanceReluctance);
+                }
+                if (s0.isUsingHailedCar()) {
+                    s1.incrementTransportationNetworkCompanyDistance(getDistance());
+                }
+                if (s0.isCarRenting()) {
+                    s1.incrementCarRentalDistance(getDistance());
+                }
             }
 
             int turnTime = (int) Math.ceil(realTurnCost);
@@ -470,10 +625,26 @@ public class StreetEdge extends Edge implements Cloneable {
             s1.incrementWalkDistance(getDistance());
         }
 
-        /* On the pre-kiss/pre-park leg, limit both walking and driving, either soft or hard. */
-        if (options.kissAndRide || options.parkAndRide) {
+        // On itineraries with car mode enabled, limit both walking and driving before transit,
+        // either soft or hard. We can safely assume no limit on driving after transit as most TNC
+        // companies will drive outside of the pickup boundaries.
+        if (
+            options.kissAndRide ||
+                options.parkAndRide ||
+                options.useTransportationNetworkCompany ||
+                options.allowCarRental
+        ) {
             if (options.arriveBy) {
-                if (!s0.isCarParked()) s1.incrementPreTransitTime(roundedTime);
+                if (
+                    // if kiss/park and ride, check if car has not yet been parked
+                    ((options.kissAndRide || options.parkAndRide) && !s0.isCarParked()) ||
+                        // if car rentals are enabled, check if a car has been rented before transit
+                        (options.allowCarRental && !s0.stateData.hasRentedCarPreTransit()) ||
+                        // if car hailing is enabled, check if a car has been hailed before transit
+                        (options.useTransportationNetworkCompany && !s0.stateData.hasHailedCarPreTransit())
+                ) {
+                    s1.incrementPreTransitTime(roundedTime);
+                }
             } else {
                 if (!s0.isEverBoarded()) s1.incrementPreTransitTime(roundedTime);
             }
@@ -736,6 +907,40 @@ public class StreetEdge extends Edge implements Cloneable {
 	public void setCarSpeed(float carSpeed) {
 		this.carSpeed = carSpeed;
 	}
+
+    public void setTNCStopSuitability(boolean isSuitable) {
+        this.suitableForTNCStop = isSuitable;
+    }
+
+    public boolean getTNCStopSuitability() { return suitableForTNCStop; }
+
+    public void setCarNetworks(Set<String> networks) { carNetworks = networks; }
+
+    public Set<String> getCarNetworks() { return carNetworks; }
+
+    public void setFloatingCarDropoffSuitability(boolean isSuitable) {
+        this.suitableForFloatingCarRentalDropoff = isSuitable;
+    }
+
+    public boolean getFloatingCarDropoffSuitability() { return suitableForFloatingCarRentalDropoff; }
+
+    public boolean addCarNetwork(String carNetwork) {
+        if (carNetworks == null) {
+            synchronized (this) {
+                if (carNetworks == null) {
+                    carNetworks = new HashSet<>();
+                }
+            }
+        }
+        return carNetworks.add(carNetwork);
+    }
+
+    public boolean containsCarNetwork(String carNetwork) {
+        if (carNetworks == null){
+            return false;
+        }
+        return carNetworks.contains(carNetwork);
+    }
 
 	public boolean isSlopeOverride() {
 	    return BitSetUtils.get(flags, SLOPEOVERRIDE_FLAG_INDEX);

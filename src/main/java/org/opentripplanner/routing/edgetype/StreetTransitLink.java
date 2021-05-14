@@ -112,11 +112,34 @@ public class StreetTransitLink extends Edge {
         // This allows searching for nearby transit stops using walk-only options.
         StateEditor s1 = s0.edit(this);
 
-        /* Only enter stations in CAR mode if parking is not required (kiss and ride) */
+        /* Determine if transit should be boarded if currently traveling in a car */
         /* Note that in arriveBy searches this is double-traversing link edges to fork the state into both WALK and CAR mode. This is an insane hack. */
         if (s0.getNonTransitMode() == TraverseMode.CAR && !req.enterStationsWithCar) {
             if (req.kissAndRide && !s0.isCarParked()) {
                 s1.setCarParked(true);
+            } else if (req.useTransportationNetworkCompany && s0.isUsingHailedCar()) {
+                // check to see if the last state has conditions that allow alighting a hailed car
+                if (s0.isTNCStopAllowed()) {
+                    s1.alightHailedCar();
+                } else {
+                    return null;
+                }
+            } else if (req.allowCarRental && s0.isCarRenting()) {
+                // check to see if transit may be used after transitioning out of a car rental
+                if (req.arriveBy) {
+                    // the search backwards has yet to reach a rental car.  Therefore the search
+                    // must continue so a rental car can be found to pickup.
+                    return null;
+                } else {
+                    if (s0.isCarRentalDropoffAllowed(false)) {
+                        // floating rental car dropoff allowed.  Exit the car and get onto transit.
+                        s1.endCarRenting();
+                        s1.incrementWeight(req.carRentalDropoffCost);
+                        s1.incrementTimeInSeconds(req.carRentalDropoffTime);
+                    } else {
+                        return null;
+                    }
+                }
             } else {
                 return null;
             }

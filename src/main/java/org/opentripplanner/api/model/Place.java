@@ -1,29 +1,29 @@
 package org.opentripplanner.api.model;
 
-import java.util.Calendar;
-
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.opentripplanner.model.FeedScopedId;
 import org.opentripplanner.util.Constants;
-
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.opentripplanner.util.model.EncodedPolylineBean;
 
-/** 
+import java.util.Calendar;
+import java.util.Set;
+
+/**
 * A Place is where a journey starts or ends, or a transit stop along the way.
-*/ 
+*/
 public class Place {
 
-    /** 
+    /**
      * For transit stops, the name of the stop.  For points of interest, the name of the POI.
      */
     public String name = null;
 
-    /** 
+    /**
      * The ID of the stop. This is often something that users don't care about.
      */
     public FeedScopedId stopId = null;
 
-    /** 
+    /**
      * The "code" of the stop. Depending on the transit agency, this is often
      * something that users care about.
      */
@@ -39,7 +39,7 @@ public class Place {
      * The longitude of the place.
      */
     public Double lon = null;
-    
+
     /**
      * The latitude of the place.
      */
@@ -86,6 +86,15 @@ public class Place {
     public String bikeShareId;
 
     /**
+     * Car share station fields
+     */
+    @JsonSerialize
+    public Set<String> networks;
+
+    @JsonSerialize
+    public String address;
+
+    /*
      * This is an optional field which can be used to distinguish among ways a passenger's
      * boarding or alighting at a stop can differ among services operated by a transit agency.
      * This will be "default" in most cases. Currently the only non-default values are for

@@ -1076,6 +1076,8 @@ public class OpenStreetMapModule implements GraphBuilderModule {
             StreetEdge street = edgeFactory.createEdge(startEndpoint, endEndpoint, geometry, name, length,
                     permissions, back);
             street.setCarSpeed(carSpeed);
+            street.setTNCStopSuitability(wayPropertySet.isSuitableForTNCStop(way));
+            street.setFloatingCarDropoffSuitability(wayPropertySet.isSuitableForStreetParking(way));
 
             String highway = way.getTag("highway");
             int cls;

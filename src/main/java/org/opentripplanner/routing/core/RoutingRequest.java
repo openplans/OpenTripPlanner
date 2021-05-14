@@ -1,12 +1,12 @@
 package org.opentripplanner.routing.core;
 
 import com.google.common.base.Objects;
-import org.opentripplanner.model.FeedScopedId;
-import org.opentripplanner.model.Route;
 import org.opentripplanner.api.parameter.QualifiedModeSet;
 import org.opentripplanner.common.MavenVersion;
 import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.common.model.NamedPlace;
+import org.opentripplanner.model.FeedScopedId;
+import org.opentripplanner.model.Route;
 import org.opentripplanner.routing.edgetype.StreetEdge;
 import org.opentripplanner.routing.error.TrivialPathException;
 import org.opentripplanner.routing.graph.Edge;
@@ -23,8 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -144,14 +144,14 @@ public class RoutingRequest implements Cloneable, Serializable {
      * An extra penalty added on transfers (i.e. all boardings except the first one).
      * Not to be confused with bikeBoardCost and walkBoardCost, which are the cost of boarding a
      * vehicle with and without a bicycle. The boardCosts are used to model the 'usual' perceived
-     * cost of using a transit vehicle, and the transferPenalty is used when a user requests even 
-     * less transfers. In the latter case, we don't actually optimize for fewest transfers, as this 
-     * can lead to absurd results. Consider a trip in New York from Grand Army 
-     * Plaza (the one in Brooklyn) to Kalustyan's at noon. The true lowest transfers route is to 
-     * wait until midnight, when the 4 train runs local the whole way. The actual fastest route is 
+     * cost of using a transit vehicle, and the transferPenalty is used when a user requests even
+     * less transfers. In the latter case, we don't actually optimize for fewest transfers, as this
+     * can lead to absurd results. Consider a trip in New York from Grand Army
+     * Plaza (the one in Brooklyn) to Kalustyan's at noon. The true lowest transfers route is to
+     * wait until midnight, when the 4 train runs local the whole way. The actual fastest route is
      * the 2/3 to the 4/5 at Nevins to the 6 at Union Square, which takes half an hour.
-     * Even someone optimizing for fewest transfers doesn't want to wait until midnight. Maybe they 
-     * would be willing to walk to 7th Ave and take the Q to Union Square, then transfer to the 6. 
+     * Even someone optimizing for fewest transfers doesn't want to wait until midnight. Maybe they
+     * would be willing to walk to 7th Ave and take the Q to Union Square, then transfer to the 6.
      * If this takes less than optimize_transfer_penalty seconds, then that's what we'll return.
      */
     public int transferPenalty = 0;
@@ -164,7 +164,7 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     /** Used instead of walk reluctance for stairs */
     public double stairsReluctance = 2.0;
-    
+
     /** Multiplicative factor on expected turning time. */
     public double turnReluctance = 1.0;
 
@@ -260,14 +260,14 @@ public class RoutingRequest implements Cloneable, Serializable {
     public HashMap<FeedScopedId, BannedStopSet> bannedTrips = new HashMap<FeedScopedId, BannedStopSet>();
 
     /** Do not use certain stops. See for more information the bannedStops property in the RoutingResource class. */
-    public StopMatcher bannedStops = StopMatcher.emptyMatcher(); 
-    
+    public StopMatcher bannedStops = StopMatcher.emptyMatcher();
+
     /** Do not use certain stops. See for more information the bannedStopsHard property in the RoutingResource class. */
     public StopMatcher bannedStopsHard = StopMatcher.emptyMatcher();
-    
+
     /** Set of preferred routes by user. */
     public RouteMatcher preferredRoutes = RouteMatcher.emptyMatcher();
-    
+
     /** Set of preferred agencies by user. */
     public HashSet<String> preferredAgencies = new HashSet<String>();
 
@@ -279,7 +279,7 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     /** Set of unpreferred routes for given user. */
     public RouteMatcher unpreferredRoutes = RouteMatcher.emptyMatcher();
-    
+
     /** Set of unpreferred agencies for given user. */
     public HashSet<String> unpreferredAgencies = new HashSet<String>();
 
@@ -304,8 +304,8 @@ public class RoutingRequest implements Cloneable, Serializable {
     public int maxTransfers = 2;
 
     /**
-     * Extensions to the trip planner will require additional traversal options beyond the default 
-     * set. We provide an extension point for adding arbitrary parameters with an 
+     * Extensions to the trip planner will require additional traversal options beyond the default
+     * set. We provide an extension point for adding arbitrary parameters with an
      * extension-specific key.
      */
     public Map<Object, Object> extensions = new HashMap<Object, Object>();
@@ -314,7 +314,7 @@ public class RoutingRequest implements Cloneable, Serializable {
     public int nonpreferredTransferPenalty = 180;
 
     /**
-     * For the bike triangle, how important time is. 
+     * For the bike triangle, how important time is.
      * triangleTimeFactor+triangleSlopeFactor+triangleSafetyFactor == 1
      */
     public double triangleTimeFactor;
@@ -371,7 +371,7 @@ public class RoutingRequest implements Cloneable, Serializable {
      */
     // 2.9 m/s/s: 0 mph to 65 mph in 10 seconds
     public double carAccelerationSpeed = 2.9;
-    
+
     /**
      * When true, realtime updates are ignored during this search.
      */
@@ -510,7 +510,7 @@ public class RoutingRequest implements Cloneable, Serializable {
      * RoutingContexts for everything because in some testing and graph building situations we need to build a bunch of
      * initial states with different times and vertices from a single TraverseOptions, without setting all the transit
      * context or building temporary vertices (with all the exception-throwing checks that entails).
-     * 
+     *
      * While they are conceptually separate, TraverseOptions does maintain a reference to its accompanying
      * RoutingContext (and vice versa) so that both do not need to be passed/injected separately into tight inner loops
      * within routing algorithms. These references should be set to null when the request scope is torn down -- the
@@ -521,7 +521,7 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     /** A transit stop that this trip must start from */
     public FeedScopedId startingTransitStopId;
-    
+
     /** A trip where this trip must start from (depart-onboard routing) */
     public FeedScopedId startingTransitTripId;
 
@@ -541,6 +541,7 @@ public class RoutingRequest implements Cloneable, Serializable {
       This is a temporary solution, as it only covers parking and rental at the beginning of the trip.
     */
     public boolean allowBikeRental = false;
+    public boolean allowCarRental = false;
     public boolean bikeParkAndRide = false;
     public boolean parkAndRide  = false;
     public boolean kissAndRide  = false;
@@ -603,6 +604,72 @@ public class RoutingRequest implements Cloneable, Serializable {
      * This is used so that TrivialPathException is thrown if origin and destination search would split the same edge
      */
     private StreetEdge splitEdge = null;
+
+    /** Whether or not to use a TNC during part of the trip */
+    public boolean useTransportationNetworkCompany;
+
+    // driving reluctances are used in TNC requests.
+    // It is set in org.opentripplanner.api.parameter.QualifiedMode.
+    // The driveTimeReluctance is used as a multiplier to add weight to a shortest path search in
+    //   org.opentripplanner.routing.edgetype.StreetEdge.
+    // It is set to -1 to indicate that driving reluctance should not be used in default car routing requests.
+    public double driveTimeReluctance = -1.0;
+    public double driveDistanceReluctance = -1.0;
+
+    // A mimum travel distance for a ride in a transportation network company.
+    // Units in meters, default is 0.5 miles.
+    public double minimumTransportationNetworkCompanyDistance = 804.672;
+
+    // we store the earliest pickup time here and add it upon the first boarding
+    // this way, a graph search can proceed and give walking a time advantage
+    // initial value of -1 indicates ETA is not available
+    public int transportationNetworkCompanyEtaAtOrigin = -1;
+
+    // A common separated list of the allowable TNC or car rental companies to query
+    public String companies;
+
+    // If request date is invalid, apply the provided strategy to come up with a valid date.
+    public String invalidDateStrategy;
+
+    // The minimum transit distance required during filtering itineraries
+    // Format is a number with a percent, ie: 50%
+    public String minTransitDistance;
+
+    // allow custom shortest path search timeouts
+    // set to -1 by default which means don't use a custom timeout
+    // units are in milliseconds
+    public long searchTimeout = -1;
+
+    /** Time to rent a car */
+    public int carRentalPickupTime = 120;
+
+    /**
+     * Cost of renting a car. The cost is a bit more than actual time to model the associated cost and trouble.
+     */
+    public int carRentalPickupCost = 120;
+
+    /** Time to drop-off a rented car */
+    public int carRentalDropoffTime = 120;
+
+    /** Cost of dropping-off a rented car */
+    public int carRentalDropoffCost = 30;
+
+    /**
+     * Whether or not car rental availability information will be used to plan bike rental trips
+     */
+    public boolean useCarRentalAvailabilityInformation = false;
+
+    /**
+     * A mimum travel distance for a ride in a car rental.
+     * Units in meters, default is 0.5 miles.
+     */
+    public double minimumCarRentalDistance = 804.672;
+
+    // setting of allowing a dropoff anywhere regardless of whether the dropoff point is a
+    // designated dropoff area or if driving a car with floating dropoff capabilities outside the
+    // car rental region.  This means the user is planning a trip with a rental car with the intent
+    // to keep the car and drive it back to an allowable dropoff point in a later trip.
+    public boolean allowCarRentalDropoffAnywhere = false;
 
     /**
      * Keep track of epoch time the request was created by OTP. This is currently only used by the
@@ -754,7 +821,7 @@ public class RoutingRequest implements Cloneable, Serializable {
     public IntersectionTraversalCostModel getIntersectionTraversalCostModel() {
         return traversalCostModel;
     }
-    
+
     /** @return the (soft) maximum walk distance */
     // If transit is not to be used and this is a point to point search
     // or one with soft walk limiting, disable walk limit.
@@ -762,10 +829,10 @@ public class RoutingRequest implements Cloneable, Serializable {
         if (modes.isTransit() || (batch && !softWalkLimiting)) {
             return maxWalkDistance;
         } else {
-            return Double.MAX_VALUE;            
+            return Double.MAX_VALUE;
         }
     }
-    
+
     public void setWalkBoardCost(int walkBoardCost) {
         if (walkBoardCost < 0) {
             this.walkBoardCost = 0;
@@ -774,7 +841,7 @@ public class RoutingRequest implements Cloneable, Serializable {
             this.walkBoardCost = walkBoardCost;
         }
     }
-    
+
     public void setBikeBoardCost(int bikeBoardCost) {
         if (bikeBoardCost < 0) {
             this.bikeBoardCost = 0;
@@ -783,7 +850,7 @@ public class RoutingRequest implements Cloneable, Serializable {
             this.bikeBoardCost = bikeBoardCost;
         }
     }
-    
+
     public void setPreferredAgencies(String s) {
         if (!s.isEmpty()) {
             preferredAgencies = new HashSet<>();
@@ -799,7 +866,7 @@ public class RoutingRequest implements Cloneable, Serializable {
             preferredRoutes = RouteMatcher.emptyMatcher();
         }
     }
-    
+
     public void setOtherThanPreferredRoutesPenalty(int penalty) {
         if(penalty < 0) penalty = 0;
         this.otherThanPreferredRoutesPenalty = penalty;
@@ -914,6 +981,33 @@ public class RoutingRequest implements Cloneable, Serializable {
 
     public void setDateTime(String date, String time, TimeZone tz) {
         Date dateObject = DateUtils.toDate(date, time, tz);
+        if (dateObject == null) {
+            // Handle bad date time.
+            if (invalidDateStrategy == null) {
+                throw new IllegalArgumentException("Date or time parameter is invalid.");
+            } else {
+                // Fix the date with the provided strategy.
+                LOG.warn("Could not parse date/time. Attempting invalid date strategy: {}", invalidDateStrategy);
+                switch (invalidDateStrategy.toUpperCase()) {
+                case "USE_CURRENT":
+                    // Attempt to use provided time.
+                    Date now = new Date();
+                    date = new SimpleDateFormat("yyyy-MM-dd").format(now);
+                    dateObject = DateUtils.toDate(date, time, tz);
+                    if (dateObject == null) {
+                        // Time didn't parse. Use current time instead.
+                        LOG.warn("Couldn't parse time. Using current time instead.");
+                        dateObject = now;
+                    }
+                    break;
+                // TODO: Add other strategies? For example, guess the nearest date to the one provided.
+                default:
+                    // If invalidDateStrategy is not one of the above
+                    throw new IllegalArgumentException("Date or time parameter is invalid.");
+                }
+            }
+        }
+        LOG.debug("Setting date to {}", date);
         setDateTime(dateObject);
     }
 
@@ -1167,6 +1261,9 @@ public class RoutingRequest implements Cloneable, Serializable {
                 && Objects.equal(startingTransitTripId, other.startingTransitTripId)
                 && disableAlertFiltering == other.disableAlertFiltering
                 && geoidElevation == other.geoidElevation
+                && invalidDateStrategy.equals(other.invalidDateStrategy)
+                && minTransitDistance == other.minTransitDistance
+                && searchTimeout == other.searchTimeout
                 && flexFlagStopExtraPenalty == other.flexFlagStopExtraPenalty
                 && flexDeviatedRouteExtraPenalty == other.flexDeviatedRouteExtraPenalty
                 && flexCallAndRideReluctance == other.flexCallAndRideReluctance
@@ -1497,5 +1594,4 @@ public class RoutingRequest implements Cloneable, Serializable {
         }
         return new PathComparator(compareStartTimes);
     }
-
 }
