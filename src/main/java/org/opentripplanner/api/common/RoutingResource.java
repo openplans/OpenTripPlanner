@@ -1,6 +1,16 @@
 package org.opentripplanner.api.common;
 
-import java.util.*;
+import org.opentripplanner.api.parameter.QualifiedMode;
+import org.opentripplanner.api.parameter.QualifiedModeSet;
+import org.opentripplanner.model.FeedScopedId;
+import org.opentripplanner.routing.core.OptimizeType;
+import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.request.BannedStopSet;
+import org.opentripplanner.standalone.OTPServer;
+import org.opentripplanner.standalone.Router;
+import org.opentripplanner.util.ResourceBundleSingleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
@@ -9,18 +19,14 @@ import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TimeZone;
 
-import org.opentripplanner.model.FeedScopedId;
-import org.opentripplanner.api.parameter.QualifiedModeSet;
-import org.opentripplanner.routing.core.OptimizeType;
-import org.opentripplanner.routing.core.RoutingRequest;
-import org.opentripplanner.routing.request.BannedStopSet;
-import org.opentripplanner.standalone.OTPServer;
-import org.opentripplanner.standalone.Router;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.opentripplanner.routing.transportation_network_company.TransportationNetworkCompanyService.setEarliestTransportationNetworkCompanyEta;
 
-import org.opentripplanner.util.ResourceBundleSingleton;
 /**
  * This class defines all the JAX-RS query parameters for a path search as fields, allowing them to 
  * be inherited by other REST resource classes (the trip planner and the Analyst WMS or tile 
@@ -417,12 +423,39 @@ public abstract class RoutingResource {
     @QueryParam("geoidElevation")
     private Boolean geoidElevation;
 
+    /*
+     * A comma separated list of TNC companies to use in the routing request
+     */
+    @QueryParam("companies")
+    protected String companies;
+
+    /**
+     * The minimum distance that should be covered using transit legs. For now, this will only have an effect if
+     * expressed as a percent. ie "50%"
+     */
+    @QueryParam("minTransitDistance")
+    private String minTransitDistance;
+
+    /**
+     * Override the default shortest path search timeouts to this value in milliseconds. This value will apply to all
+     * attempts to find an individual itinerary.
+     */
+    @QueryParam("searchTimeout")
+    protected Long searchTimeout;
+
     /**
      * Set the method of sorting itineraries in the response. Right now, the only supported value is "duration";
      * otherwise it uses default sorting. More sorting methods may be added in the future.
      */
     @QueryParam("pathComparator")
     private String pathComparator;
+
+    /**
+     * When set to true, this will require transit to be present in all itineraries returned. This will prevent results
+     * that have only a non-transit mode as the entire itinerary even if that option is more optimal.
+     */
+    @QueryParam("onlyTransitTrips")
+    private Boolean onlyTransitTrips;
 
     /* 
      * somewhat ugly bug fix: the graphService is only needed here for fetching per-graph time zones. 
@@ -677,8 +710,19 @@ public abstract class RoutingResource {
         if (geoidElevation != null)
             request.geoidElevation = geoidElevation;
 
+        if (minTransitDistance != null)
+            request.minTransitDistance = minTransitDistance;
+
+        if (searchTimeout != null)
+            request.searchTimeout = searchTimeout;
+
+        setEarliestTransportationNetworkCompanyEta(request, router, companies);
+
         if (pathComparator != null)
             request.pathComparator = pathComparator;
+
+        if (onlyTransitTrips != null)
+            request.onlyTransitTrips = onlyTransitTrips;
 
         //getLocale function returns defaultLocale if locale is null
         request.locale = ResourceBundleSingleton.INSTANCE.getLocale(locale);
