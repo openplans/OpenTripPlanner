@@ -105,12 +105,4 @@ public class Station extends TransitEntity implements StopCollection {
   public Collection<Stop> getChildStops() {
     return childStops;
   }
-
-  public double getLat() {
-    return coordinate.latitude();
-  }
-
-  public double getLon() {
-    return coordinate.longitude();
-  }
 }

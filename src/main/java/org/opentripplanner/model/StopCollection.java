@@ -10,13 +10,25 @@ public interface StopCollection {
 
         FeedScopedId getId();
 
+        String getName();
+
         /**
          * Implementations should go down the hierarchy and return all the underlying stops
          * recursively.
          */
         Collection<Stop> getChildStops();
 
-        double getLat();
+        default double getLat() {
+                return getCoordinate().latitude();
+        }
 
-        double getLon();
+        default double getLon() {
+                return getCoordinate().longitude();
+        }
+
+        /**
+         * Representative location for the StopLocation. Can either be the actual location of the stop, or
+         * the centroid of an area or line.
+         */
+        WgsCoordinate getCoordinate();
 }
