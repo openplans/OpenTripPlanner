@@ -284,7 +284,8 @@ public class RoutingWorker {
                 request.getDateTime().toInstant(),
                 request.additionalSearchDaysAfterToday,
                 createRequestTransitDataProviderFilter(graphIndex),
-                request.walkSpeed
+                request.walkSpeed,
+                request.bannedStopsHard
         );
     }
 

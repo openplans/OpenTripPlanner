@@ -2,6 +2,7 @@ package org.opentripplanner.transit.raptor.rangeraptor;
 
 import static java.util.stream.Collectors.groupingBy;
 
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -210,6 +211,7 @@ public final class RangeRaptorWorker<T extends RaptorTripSchedule> implements Wo
             IntIterator stops = state.stopsTouchedPreviousRound();
             Iterator<? extends RaptorRoute<T>> routeIterator = transitData.routeIterator(stops);
 
+            BitSet stopBitSet = state.stopsTouchedPreviousRoundAsBitSet();
             while (routeIterator.hasNext()) {
                 var route = routeIterator.next();
                 var pattern = route.pattern();
@@ -222,9 +224,19 @@ public final class RangeRaptorWorker<T extends RaptorTripSchedule> implements Wo
 
                 IntIterator stop = calculator.patternStopIterator(pattern.numberOfStopsInPattern());
 
+                boolean foundStopTouchedInPreviousRound = false;
                 while (stop.hasNext()) {
                     int stopPos = stop.next();
                     int stopIndex = pattern.stopIndex(stopPos);
+
+                    if(!stopBitSet.get(stopIndex) && !foundStopTouchedInPreviousRound) {
+                        continue;
+                    }
+                    foundStopTouchedInPreviousRound = true;
+                    if (transitData.isStopHardBanned(stopIndex)) {
+                        foundStopTouchedInPreviousRound = false;
+                        continue;
+                    }
 
                     // attempt to alight if we're on board, this is done above the board search
                     // so that we don't alight on first stop boarded
@@ -296,9 +308,12 @@ public final class RangeRaptorWorker<T extends RaptorTripSchedule> implements Wo
 
             while (it.hasNext()) {
                 final int fromStop = it.next();
+                if (transitData.isStopHardBanned(fromStop)) {
+                  break;
+                }
                 // no need to consider loop transfers, since we don't mark patterns here any more
                 // loop transfers are already included by virtue of those stops having been reached
-                state.transferToStops(fromStop, transitData.getTransfers(fromStop));
+                state.transferToStops(fromStop, transitData.getTransfers(fromStop), transitData.getHardBannedStops());
             }
 
             lifeCycle.transfersForRoundComplete();

@@ -773,6 +773,9 @@ public abstract class RoutingResource {
         if (whiteListedAgencies != null) {
             request.setWhiteListedAgenciesFromSting(whiteListedAgencies);
         }
+        if (bannedStopsHard != null) {
+          request.setBannedStopsHardFromString(bannedStopsHard);
+        }
         HashMap<FeedScopedId, BannedStopSet> bannedTripMap = makeBannedTripMap(bannedTrips);
       
         if (bannedTripMap != null) {
