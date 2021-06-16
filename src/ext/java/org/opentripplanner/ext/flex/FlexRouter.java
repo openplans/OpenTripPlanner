@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -39,9 +38,12 @@ public class FlexRouter {
   private final FlexPathCalculator accessFlexPathCalculator;
   private final FlexPathCalculator egressFlexPathCalculator;
 
-  /* Request data */
+  /* "Start of Time" refers to the service date (midnight) of the date of the request */
   private final ZonedDateTime startOfTime;
+
+  /* this is the number of seconds since startOfTime/the service date */
   private final int departureTime;
+  
   private final boolean arriveBy;
 
   private final FlexServiceDate[] dates;
@@ -73,16 +75,15 @@ public class FlexRouter {
     this.arriveBy = arriveBy;
 
     int totalDays = additionalPastSearchDays + 1 + additionalFutureSearchDays;
-
     this.dates = new FlexServiceDate[totalDays];
 
     for (int d = -additionalPastSearchDays; d <= additionalFutureSearchDays; ++d) {
       LocalDate date = searchDate.plusDays(d);
       int index = d + additionalPastSearchDays;
+      
       ServiceDate serviceDate = new ServiceDate(date);
       dates[index] = new FlexServiceDate(
           serviceDate,
-          DateMapper.secondsSinceStartOfTime(startOfTime, date),
           graph.index.getServiceCodesRunningForDate().get(serviceDate)
       );
     }
@@ -94,8 +95,6 @@ public class FlexRouter {
 
     Multimap<StopLocation, NearbyStop> streetEgressByStop = HashMultimap.create();
     streetEgresses.forEach(it -> streetEgressByStop.put(it.stop, it));
-
-    Set<StopLocation> egressStops = streetEgressByStop.keySet();
 
     Collection<Itinerary> itineraries = new ArrayList<>();
 
@@ -120,6 +119,7 @@ public class FlexRouter {
     return this.flexAccessTemplates
         .stream()
         .flatMap(template -> template.createFlexAccessEgressStream(graph))
+        .filter(e -> e != null)
         .collect(Collectors.toList());
   }
 
@@ -129,6 +129,7 @@ public class FlexRouter {
     return this.flexEgressTemplates
         .stream()
         .flatMap(template -> template.createFlexAccessEgressStream(graph))
+        .filter(e -> e != null)
         .collect(Collectors.toList());
   }
 

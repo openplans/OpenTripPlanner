@@ -1,12 +1,12 @@
 package org.opentripplanner.ext.flex.trip;
 
 import org.opentripplanner.ext.flex.FlexServiceDate;
+import org.opentripplanner.ext.flex.flexpathcalculator.FlexPath;
 import org.opentripplanner.ext.flex.flexpathcalculator.FlexPathCalculator;
 import org.opentripplanner.ext.flex.template.FlexAccessTemplate;
 import org.opentripplanner.ext.flex.template.FlexEgressTemplate;
 import org.opentripplanner.model.BookingInfo;
 import org.opentripplanner.model.StopLocation;
-import org.opentripplanner.model.StopTime;
 import org.opentripplanner.model.TransitEntity;
 import org.opentripplanner.model.Trip;
 import org.opentripplanner.routing.graphfinder.NearbyStop;
@@ -21,24 +21,36 @@ import java.util.stream.Stream;
  */
 public abstract class FlexTrip extends TransitEntity {
 
-  protected final Trip trip;
+  private static final long serialVersionUID = 8819000771336287893L;
 
+  protected final Trip trip;
+  
   public FlexTrip(Trip trip) {
     super(trip.getId());
     this.trip = trip;
   }
 
   public abstract Stream<FlexAccessTemplate> getFlexAccessTemplates(
-      NearbyStop access, FlexServiceDate date, FlexPathCalculator calculator
+      NearbyStop access, FlexServiceDate servicedate, FlexPathCalculator calculator
   );
 
   public abstract Stream<FlexEgressTemplate> getFlexEgressTemplates(
-      NearbyStop egress, FlexServiceDate date, FlexPathCalculator calculator
+      NearbyStop egress, FlexServiceDate servicedate, FlexPathCalculator calculator
   );
 
-  public abstract int earliestDepartureTime(int departureTime, int fromStopIndex, int toStopIndex, int flexTime);
+  // The 95% CI for travel time on this trip. Use this for connections and other things that 
+  // need more certainty about the arrival/departure time.
+  public abstract int getSafeTotalTime(FlexPath streetPath, int fromStopIndex, int toStopIndex);
 
-  public abstract int latestArrivalTime(int arrivalTime, int fromStopIndex, int toStopIndex, int flexTime);
+  // The "usual" for travel time on this trip. Use this for display and other things that 
+  // are supposed to be more the norm vs. the "worst case" scenario.
+  public abstract int getMeanTotalTime(FlexPath streetPath, int fromStopIndex, int toStopIndex);
+
+  // Note: This method returns seconds since midnight. departureTime is also seconds since midnight/service date
+  public abstract int earliestDepartureTime(int departureTime, int fromStopIndex, int toStopIndex);
+
+  // Note: This method returns seconds since midnight. departureTime is also seconds since midnight/service date
+  public abstract int latestArrivalTime(int arrivalTime, int fromStopIndex, int toStopIndex);
 
   public abstract Collection<StopLocation> getStops();
 

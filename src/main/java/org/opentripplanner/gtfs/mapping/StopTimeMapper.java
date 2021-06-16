@@ -73,6 +73,10 @@ class StopTimeMapper {
         lhs.setFlexWindowEnd(rhs.getEndPickupDropOffWindow());
         lhs.setFlexContinuousPickup(rhs.getContinuousPickup());
         lhs.setFlexContinuousDropOff(rhs.getContinuousDropOff());
+        lhs.setMeanDurationFactor(rhs.getMeanDurationFactor());
+        lhs.setMeanDurationOffset(rhs.getMeanDurationOffset());
+        lhs.setSafeDurationFactor(rhs.getSafeDurationFactor());
+        lhs.setSafeDurationOffset(rhs.getSafeDurationOffset());
         lhs.setPickupBookingInfo(bookingRuleMapper.map(rhs.getPickupBookingRule()));
         lhs.setDropOffBookingInfo(bookingRuleMapper.map(rhs.getDropOffBookingRule()));
 
