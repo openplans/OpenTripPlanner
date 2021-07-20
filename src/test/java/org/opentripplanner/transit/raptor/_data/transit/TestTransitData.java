@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 import lombok.val;
 import org.opentripplanner.transit.raptor._data.debug.TestDebugLogger;
@@ -12,6 +14,9 @@ import org.opentripplanner.transit.raptor.api.transit.IntIterator;
 import org.opentripplanner.transit.raptor.api.transit.RaptorRoute;
 import org.opentripplanner.transit.raptor.api.transit.RaptorTransfer;
 import org.opentripplanner.transit.raptor.api.transit.RaptorTransitDataProvider;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.transfer.Transfer;
+import org.opentripplanner.routing.algorithm.raptor.transit.TransitLayer;
 
 @SuppressWarnings("UnusedReturnValue")
 public class TestTransitData implements RaptorTransitDataProvider<TestTripSchedule> {
@@ -19,6 +24,7 @@ public class TestTransitData implements RaptorTransitDataProvider<TestTripSchedu
   private final List<List<RaptorTransfer>> transfersByStop = new ArrayList<>();
   private final List<Set<TestRoute>> routesByStop = new ArrayList<>();
   private final List<TestRoute> routes = new ArrayList<>();
+  private final Map<Integer, Stop> stopByIndex = new HashMap<>();
 
   @Override
   public Iterator<? extends RaptorTransfer> getTransfers(int fromStop) {
@@ -44,6 +50,11 @@ public class TestTransitData implements RaptorTransitDataProvider<TestTripSchedu
   public int[] stopBoarAlightCost() {
     // Not implemented, no test for this yet.
     return null;
+  }
+
+  @Override
+  public Stop getStopByIndex(int stopIndex) {
+    return stopByIndex.get(stopIndex);
   }
 
   public void debugToStdErr(RaptorRequestBuilder<TestTripSchedule> request) {
@@ -102,6 +113,26 @@ public class TestTransitData implements RaptorTransitDataProvider<TestTripSchedu
         }
       }
     }
+    return this;
+  }
+
+
+  public TestTransitData withForbiddenTransfer(
+    int toStopIndex,
+    Transfer transfer
+  ) {
+    for (TestRoute route : routes) {
+      int toStopPos = route.pattern().findStopPositionAfter(0, toStopIndex);
+      route.addForbiddenTransfers(toStopPos, transfer);
+    }
+    return this;
+  }
+
+  public TestTransitData withStopByIndex(
+    Stop stop,
+    int stopIndex
+  ) {
+    this.stopByIndex.put(stopIndex, stop);
     return this;
   }
 
