@@ -1,5 +1,6 @@
 package org.opentripplanner.routing.algorithm.raptor.transit.request;
 
+import org.opentripplanner.model.Stop;
 import org.opentripplanner.routing.algorithm.raptor.transit.TransitLayer;
 import org.opentripplanner.routing.algorithm.raptor.transit.TripSchedule;
 import org.opentripplanner.routing.api.request.RoutingRequest;
@@ -95,4 +96,9 @@ public class RaptorRoutingRequestTransitData implements RaptorTransitDataProvide
   public ZonedDateTime getStartOfTime() {
     return startOfTime;
   }
+
+  public Stop getStopByIndex(int stopIndex) {
+    return transitLayer.getStopByIndex(stopIndex);
+  }
+
 }
