@@ -12,6 +12,7 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import org.opentripplanner.model.BookingInfo;
+import org.opentripplanner.model.StopPattern;
 import org.opentripplanner.model.StopTime;
 import org.opentripplanner.model.Trip;
 import org.slf4j.Logger;
@@ -559,6 +560,13 @@ public class TripTimes implements Serializable, Comparable<TripTimes>, Cloneable
     /** @return whether or not stopIndex is considered a timepoint in this TripTimes. */
     public boolean isTimepoint(final int stopIndex) {
         return timepoints.get(stopIndex);
+    }
+
+    /** Return {code true} if stop is cancelled, or trip is canceled/replaced */
+    public boolean stopOrTripIsCancelled(int stop) {
+        return isCancelledStop(stop)
+            || trip.getTripAlteration().isCanceledOrReplaced()
+            || getPickupType(stop) != PICKDROP_NONE;
     }
 
     /**
